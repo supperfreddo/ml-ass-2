@@ -27,51 +27,66 @@ y_encoded = encoder_y.fit_transform(y)
 # Combine the numerical and encoded categorical features
 X_combined = np.hstack((X_numeric, X_encoded))
 
+# Split the data into training, validation, and testing sets
+X_train, X_temp, y_train, y_temp = train_test_split(X_combined, y_encoded, test_size=0.3, random_state=0)
+X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.5, random_state=0)
+
 #### Naive Bayes
 print("NAIVE BAYAS:")
-# Split the data into training and testing sets
-X_train, X_test, y_train, y_test = train_test_split(X_combined, y, test_size=0.2, random_state=42)
+# Train Naive Bayes classifiers
+string_classifier = MultinomialNB()
+numeric_classifier = GaussianNB()
 
-# Train Naive Bayes classifiers for each feature
-string_clf = MultinomialNB()
-numeric_clf = GaussianNB()
+string_classifier.fit(X_train[:, 0].reshape(-1, 1), y_train)
+numeric_classifier.fit(X_train[:, 1].reshape(-1, 1), y_train)
 
-string_clf.fit(X_train[:, 0].reshape(-1, 1), y_train)
-numeric_clf.fit(X_train[:, 1].reshape(-1, 1), y_train)
+# Predict using the trained classifiers for validation set
+string_pred_val = string_classifier.predict(X_val[:, 0].reshape(-1, 1))
+numeric_pred_val = numeric_classifier.predict(X_val[:, 1].reshape(-1, 1))
 
-# Predict using the trained classifiers
-string_pred = string_clf.predict(X_test[:, 0].reshape(-1, 1))
-numeric_pred = numeric_clf.predict(X_test[:, 1].reshape(-1, 1))
+# Combine predictions from both classifiers for validation set by taking the mode
+combined_pred_val = np.unique([string_pred_val, numeric_pred_val], axis=0)[0]
+combined_pred_val = np.squeeze(combined_pred_val)
 
-# Combine predictions from both classifiers by taking the mode
-combined_pred = np.unique([string_pred, numeric_pred], axis=0)[0]
+# Predict using the trained classifiers for testing set
+string_pred_test = string_classifier.predict(X_test[:, 0].reshape(-1, 1))
+numeric_pred_test = numeric_classifier.predict(X_test[:, 1].reshape(-1, 1))
 
-# Flatten the combined predictions
-combined_pred = np.squeeze(combined_pred)
+# Combine predictions from both classifiers for testing set by taking the mode
+combined_pred_test = np.unique([string_pred_test, numeric_pred_test], axis=0)[0]
+combined_pred_test = np.squeeze(combined_pred_test)
 
-# Calculate accuracy
-accuracy = accuracy_score(y_test, combined_pred)
-print("Combined Naive Bayes Accuracy:", accuracy)
+# Calculate accuracy for validation and testing sets
+accuracy_val = accuracy_score(y_val, combined_pred_val)
+accuracy_test = accuracy_score(y_test, combined_pred_test)
+
+print("Combined Naive Bayes Validation Accuracy:", accuracy_val)
+print("Combined Naive Bayes Testing Accuracy:", accuracy_test)
 
 #### Random Forest
 print("\nRANDOM FOREST:")
-# Combine the numerical and encoded categorical features
-X_combined = np.hstack((X_numeric, X_encoded))
-
-# Split the data into training and testing sets
-X_train, X_test, y_train, y_test = train_test_split(X_combined, y_encoded, test_size=0.2, random_state=0)
-
 # Create and fit the random forest model
 rf_model = RandomForestClassifier(n_estimators=10, random_state=0)
 rf_model.fit(X_train, y_train)
 
-# Predict using the trained model
-y_pred = rf_model.predict(X_test)
+# Predict using the trained model on the validation set
+y_val_pred = rf_model.predict(X_val)
 
 # Decode the predicted labels back to original categorical form
-y_pred_decoded = encoder_y.inverse_transform(y_pred)
+y_val_pred_decoded = encoder_y.inverse_transform(y_val_pred)
+y_val_decoded = encoder_y.inverse_transform(y_val)
+
+# Calculate accuracy on the validation set
+accuracy_val = accuracy_score(y_val_decoded, y_val_pred_decoded)
+print("Random Forest Validation Accuracy:", accuracy_val)
+
+# Predict using the trained model on the test set
+y_test_pred = rf_model.predict(X_test)
+
+# Decode the predicted labels back to original categorical form
+y_test_pred_decoded = encoder_y.inverse_transform(y_test_pred)
 y_test_decoded = encoder_y.inverse_transform(y_test)
 
-# Calculate accuracy
-accuracy = accuracy_score(y_test_decoded, y_pred_decoded)
-print("Random Forest Accuracy:", accuracy)
+# Calculate accuracy on the test set
+accuracy_test = accuracy_score(y_test_decoded, y_test_pred_decoded)
+print("Random Forest Testing Accuracy:", accuracy_test)
