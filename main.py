@@ -76,10 +76,6 @@ y_val_pred = rf_model.predict(X_val)
 y_val_pred_decoded = encoder_y.inverse_transform(y_val_pred)
 y_val_decoded = encoder_y.inverse_transform(y_val)
 
-# Calculate accuracy on the validation set
-accuracy_val = accuracy_score(y_val_decoded, y_val_pred_decoded)
-print("Random Forest Validation Accuracy:", accuracy_val)
-
 # Predict using the trained model on the test set
 y_test_pred = rf_model.predict(X_test)
 
@@ -87,6 +83,9 @@ y_test_pred = rf_model.predict(X_test)
 y_test_pred_decoded = encoder_y.inverse_transform(y_test_pred)
 y_test_decoded = encoder_y.inverse_transform(y_test)
 
-# Calculate accuracy on the test set
+# Calculate accuracy for validation and testing sets
+accuracy_val = accuracy_score(y_val_decoded, y_val_pred_decoded)
 accuracy_test = accuracy_score(y_test_decoded, y_test_pred_decoded)
+
+print("Random Forest Validation Accuracy:", accuracy_val)
 print("Random Forest Testing Accuracy:", accuracy_test)
