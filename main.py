@@ -10,10 +10,16 @@ from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 # Load data
 df = pd.read_csv('data/all_mtg_cards.csv', header = 0)
 
+# Convert the power and toughness columns to numeric
+df['power'] = pd.to_numeric(df['power'], errors='coerce')
+df['toughness'] = pd.to_numeric(df['toughness'], errors='coerce')
+
+# Drop rows with missing values in power and toughness columns
+df = df.dropna(subset=['power', 'toughness'])
+
 # Split data into features and target
-types = df['type'].unique()
-X_numeric = df[['cmc']]
-X_categorical = df[['type']]
+X_numeric = df[['cmc', 'power', 'toughness']]
+X_categorical = df[['type', 'set']]
 y = df['rarity']
 
 # One-hot encode the categorical features
