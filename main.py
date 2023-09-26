@@ -1,16 +1,16 @@
-# Import libs
+# Import libraries
 import numpy as np
 import pandas as pd
-from sklearn.naive_bayes import GaussianNB
+from sklearn.naive_bayes import MultinomialNB, GaussianNB
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 
 # Load data
 df = pd.read_csv('data/all_mtg_cards.csv', header = 0)
 
-#### Random Forest
-
-# Generate some example data
+# Split data into features and target
 types = df['type'].unique()
 X_numeric = df[['cmc']]
 X_categorical = df[['type']]
@@ -27,39 +27,51 @@ y_encoded = encoder_y.fit_transform(y)
 # Combine the numerical and encoded categorical features
 X_combined = np.hstack((X_numeric, X_encoded))
 
-# Create and fit the random forest model
-rf_model = RandomForestClassifier(n_estimators=10, random_state=0) # n_estimators is the number of trees, the more the longer the model takes to run
-rf_model.fit(X_combined, y_encoded)
+#### Naive Bayes
+print("NAIVE BAYAS:")
+# Split the data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X_combined, y, test_size=0.2, random_state=42)
 
-# Create a test example
-test_example_numeric = [[30]]
-test_example_categorical = [['Legendary Creature — Goblin']] 
+# Train Naive Bayes classifiers for each feature
+string_clf = MultinomialNB()
+numeric_clf = GaussianNB()
 
-# One-hot encode the categorical features
-test_example_categorical_encoded = encoder_X.transform(test_example_categorical).toarray()
+string_clf.fit(X_train[:, 0].reshape(-1, 1), y_train)
+numeric_clf.fit(X_train[:, 1].reshape(-1, 1), y_train)
 
+# Predict using the trained classifiers
+string_pred = string_clf.predict(X_test[:, 0].reshape(-1, 1))
+numeric_pred = numeric_clf.predict(X_test[:, 1].reshape(-1, 1))
+
+# Combine predictions from both classifiers by taking the mode
+combined_pred = np.unique([string_pred, numeric_pred], axis=0)[0]
+
+# Flatten the combined predictions
+combined_pred = np.squeeze(combined_pred)
+
+# Calculate accuracy
+accuracy = accuracy_score(y_test, combined_pred)
+print("Combined Naive Bayes Accuracy:", accuracy)
+
+#### Random Forest
+print("\nRANDOM FOREST:")
 # Combine the numerical and encoded categorical features
-test_example_combined = np.hstack((test_example_numeric, test_example_categorical_encoded))
+X_combined = np.hstack((X_numeric, X_encoded))
+
+# Split the data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X_combined, y_encoded, test_size=0.2, random_state=0)
+
+# Create and fit the random forest model
+rf_model = RandomForestClassifier(n_estimators=10, random_state=0)
+rf_model.fit(X_train, y_train)
 
 # Predict using the trained model
-predicted_y_encoded = rf_model.predict(test_example_combined)
-predicted_y = encoder_y.inverse_transform(predicted_y_encoded)
-print("Predicted rarity for test_example:", predicted_y[0])
+y_pred = rf_model.predict(X_test)
 
+# Decode the predicted labels back to original categorical form
+y_pred_decoded = encoder_y.inverse_transform(y_pred)
+y_test_decoded = encoder_y.inverse_transform(y_test)
 
-
-#### Naive Bayes
-# # split data into features and target
-# X = df[['power', 'toughness', 'cmc']]
-# y = df['rarity']
-
-# # build a Naïve Bayes model
-# clf = GaussianNB()
-# clf.fit(X.values, y)
-
-# # create test example
-# test_example = [[2, 1, 30]]
-
-# # use the model to predict new example
-# predicted = clf.predict(test_example)
-# print(predicted)
+# Calculate accuracy
+accuracy = accuracy_score(y_test_decoded, y_pred_decoded)
+print("Random Forest Accuracy:", accuracy)
