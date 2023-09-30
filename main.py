@@ -1,4 +1,4 @@
-# Import libraries
+# 1. Import libraries
 import time
 import numpy as np
 import pandas as pd
@@ -8,13 +8,13 @@ from sklearn.metrics import accuracy_score
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 
-# Set start time
+# 2. Set start time
 start_time = time.time()
 
-# Load data
+# 3. Load data
 df = pd.read_csv('data/all_mtg_cards.csv', header = 0)
 
-# Convert the power and toughness columns to numeric
+# 4. Convert the power and toughness columns to numeric
 df['power'] = pd.to_numeric(df['power'], errors='coerce')
 df['toughness'] = pd.to_numeric(df['toughness'], errors='coerce')
 
@@ -26,27 +26,27 @@ df['toughness'] = pd.to_numeric(df['toughness'], errors='coerce')
 # Drop rows with missing values in power and toughness columns
 df = df.dropna(subset=['power', 'toughness'])
 
-# Split data into features and target
+# 5. Split data into features and target
 X_numeric = df[['cmc', 'power', 'toughness']]
 X_categorical = df[['layout', 'mana_cost', 'color_identity', 'type', 'supertypes', 'subtypes', 'set']]
 y = df['rarity']
 
-# One-hot encode the categorical features
+# 6. One-hot encode the categorical features
 encoder_X = OneHotEncoder()
 X_encoded = encoder_X.fit_transform(X_categorical).toarray()
 
-# Encode the categorical target
+# 7. Encode the categorical target
 encoder_y = LabelEncoder()
 y_encoded = encoder_y.fit_transform(y)
 
-# Combine the numerical and encoded categorical features
+# 8. Combine the numerical and encoded categorical features
 X_combined = np.hstack((X_numeric, X_encoded))
 
-# Split the data into training, validation, and testing sets
+# 9. Split the data into training, validation, and testing sets
 X_train, X_temp, y_train, y_temp = train_test_split(X_combined, y_encoded, test_size=0.3, random_state=0)
 X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.5, random_state=0)
 
-#### Naive Bayes
+#### 10. Naive Bayes
 print("NAIVE BAYAS:")
 # Hyperparameters
 alpha_multinomial = 1.0  # Smoothing parameter for Multinomial Naive Bayes
@@ -82,7 +82,7 @@ accuracy_val = accuracy_score(y_val, combined_pred_val)
 print("Combined Naive Bayes Testing Accuracy:       {}%". format(accuracy_test*100))
 print("Combined Naive Bayes Validation Accuracy:    {}%". format(accuracy_val*100))
 
-#### Random Forest
+#### 11. Random Forest
 print("\nRANDOM FOREST:")
 # Hyperparameter grid for tuning
 param_grid = {
@@ -125,5 +125,5 @@ accuracy_val = accuracy_score(y_val_decoded, y_val_pred_decoded)
 print("Random Forest Test Accuracy with Best Hyperparameters:       {}%". format(accuracy_test*100))
 print("Random Forest Validation Accuracy with Best Hyperparameters: {}%". format(accuracy_val*100))
 
-# Print exucution time
+# 12. Print exucution time
 print("\nExecution Time:", time.strftime("%H:%M:%S", time.gmtime(time.time() - start_time)))
