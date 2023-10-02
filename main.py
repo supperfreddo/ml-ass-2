@@ -92,6 +92,10 @@ param_grid = {
     'min_samples_leaf': [1, 2, 4] #### Seems to always prefer 1
 }
 
+# Print used hyperparamets for grid search
+print("Used Hyperparameters for Random Forest:")
+print(param_grid)
+
 # Create random forest model
 rf_model = RandomForestClassifier(random_state=0)
 
