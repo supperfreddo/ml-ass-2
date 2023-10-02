@@ -114,10 +114,10 @@ print("Combined Naive Bayes Testing Accuracy:      {}%". format(accuracy_test*10
 print("\nRANDOM FOREST:")
 # Hyperparameter grid for tuning
 param_grid = {
-    'n_estimators': [1, 25, 50], #### Seems to always prefer the highest value
-    'max_depth': [None, 10, 20, 30], #### Seems to always prefer none
-    'min_samples_split': [2, 3, 4], #### Seems to always prefer 2
-    'min_samples_leaf': [1, 2, 4] #### Seems to always prefer 1
+    'n_estimators': [1, 50, 100, 250, 500], #### Seems to always prefer the highest value
+    'max_depth': [None, 1, 5, 10, 25], #### Seems to always prefer none
+    'min_samples_split': [2, 3, 4, 5], #### Seems to always prefer lowest value
+    'min_samples_leaf': [1, 2, 4, 6, 8, 10] #### Seems to always prefer lowest value
 }
 
 # Print used hyperparamets for grid search
