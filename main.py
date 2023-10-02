@@ -18,11 +18,6 @@ df = pd.read_csv('data/all_mtg_cards.csv', header = 0)
 df['power'] = pd.to_numeric(df['power'], errors='coerce')
 df['toughness'] = pd.to_numeric(df['toughness'], errors='coerce')
 
-#### DO WE WANNA USE THIS?
-# Set column power and toughness null values to 0
-# df['power'] = df['power'].fillna(0)
-# df['toughness'] = df['toughness'].fillna(0)
-
 # Drop rows with missing values in power and toughness columns
 df = df.dropna(subset=['power', 'toughness'])
 
@@ -48,13 +43,49 @@ X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.5, r
 
 #### 10. Naive Bayes
 print("NAIVE BAYAS:")
-# Hyperparameters
-alpha_multinomial = 1.0  # Smoothing parameter for Multinomial Naive Bayes
-priors_gaussian = None   # Priors for Gaussian Naive Bayes (None means they will be calculated from the data)
+# Hyperparameters for naive bayes
+alpha_values = [0.1, 0.5, 1.0, 1.5, 2.0]
 
-# Train Naive Bayes classifiers
-string_classifier = MultinomialNB(alpha=alpha_multinomial)
-numeric_classifier = GaussianNB(priors=priors_gaussian)
+# Print used hyperparamets for naive bayes
+print("Used Hyperparameters for Naive Bayes:")
+print("Alpha values:", alpha_values)
+
+best_accuracy = 0
+best_alpha = None
+
+# Iterate over all alpha values
+for alpha in alpha_values:
+    # Train Naive Bayes classifiers
+    string_classifier = MultinomialNB(alpha=alpha)
+    numeric_classifier = GaussianNB()
+
+    string_classifier.fit(X_train[:, 0].reshape(-1, 1), y_train)
+    numeric_classifier.fit(X_train[:, 1].reshape(-1, 1), y_train)
+
+    # Predict using the trained classifiers for validation set
+    string_pred_val = string_classifier.predict(X_val[:, 0].reshape(-1, 1))
+    numeric_pred_val = numeric_classifier.predict(X_val[:, 1].reshape(-1, 1))
+
+    # Combine predictions from both classifiers for validation set by taking the mode
+    combined_pred_val = np.unique([string_pred_val, numeric_pred_val], axis=0)[0]
+    combined_pred_val = np.squeeze(combined_pred_val)
+
+    # Calculate accuracy for validation set
+    accuracy_val = accuracy_score(y_val, combined_pred_val)
+    
+    print(f"Validation Accuracy with alpha={alpha}:         {format(accuracy_val * 100)}%")
+
+    # Update best hyperparameters if needed
+    if accuracy_val > best_accuracy:
+        best_accuracy = accuracy_val
+        best_alpha = alpha
+
+print("\nBest alpha:                                ", best_alpha)
+print(f"Best Validation Accuracy:                   {format(best_accuracy * 100)}%")
+
+# Train the final model with the best hyperparameters using the full training set
+string_classifier = MultinomialNB(alpha=best_alpha)
+numeric_classifier = GaussianNB()
 
 string_classifier.fit(X_train[:, 0].reshape(-1, 1), y_train)
 numeric_classifier.fit(X_train[:, 1].reshape(-1, 1), y_train)
@@ -75,12 +106,9 @@ numeric_pred_test = numeric_classifier.predict(X_test[:, 1].reshape(-1, 1))
 combined_pred_test = np.unique([string_pred_test, numeric_pred_test], axis=0)[0]
 combined_pred_test = np.squeeze(combined_pred_test)
 
-# Calculate accuracy for validation and testing sets
+# Calculate accuracy for and testing set
 accuracy_test = accuracy_score(y_test, combined_pred_test)
-accuracy_val = accuracy_score(y_val, combined_pred_val)
-
-print("Combined Naive Bayes Testing Accuracy:       {}%". format(accuracy_test*100))
-print("Combined Naive Bayes Validation Accuracy:    {}%". format(accuracy_val*100))
+print("Combined Naive Bayes Testing Accuracy:      {}%". format(accuracy_test*100))
 
 #### 11. Random Forest
 print("\nRANDOM FOREST:")
@@ -104,7 +132,7 @@ grid_search = GridSearchCV(rf_model, param_grid, cv=3, n_jobs=-1)
 grid_search.fit(X_train, y_train)
 
 # Print the best hyperparameters found by the grid search
-print("Best Hyperparameters for Random Forest:")
+print("\nBest Hyperparameters for Random Forest:")
 print(grid_search.best_params_)
 
 # Predict using the best model
