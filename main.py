@@ -3,7 +3,7 @@ import time
 import numpy as np
 import pandas as pd
 from sklearn.naive_bayes import MultinomialNB, GaussianNB
-from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.model_selection import train_test_split, GridSearchCV, KFold
 from sklearn.metrics import accuracy_score
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder
@@ -53,31 +53,45 @@ print("Alpha values:", alpha_values)
 best_accuracy = 0
 best_alpha = None
 
+# Perform k-fold cross-validation
+k = 5  # Number of folds
+kf = KFold(n_splits=k, shuffle=True, random_state=42)
+
 # Iterate over all alpha values
 for alpha in alpha_values:
-    # Train Naive Bayes classifiers
-    string_classifier = MultinomialNB(alpha=alpha)
-    numeric_classifier = GaussianNB()
+    avg_accuracy_val = 0  # Average validation accuracy
 
-    string_classifier.fit(X_train[:, 0].reshape(-1, 1), y_train)
-    numeric_classifier.fit(X_train[:, 1].reshape(-1, 1), y_train)
+    for train_idx, val_idx in kf.split(X_train):
+        X_train_fold, X_val_fold = X_train[train_idx], X_train[val_idx]
+        y_train_fold, y_val_fold = y_train[train_idx], y_train[val_idx]
 
-    # Predict using the trained classifiers for validation set
-    string_pred_val = string_classifier.predict(X_val[:, 0].reshape(-1, 1))
-    numeric_pred_val = numeric_classifier.predict(X_val[:, 1].reshape(-1, 1))
+        # Train Naive Bayes classifiers
+        string_classifier = MultinomialNB(alpha=alpha)
+        numeric_classifier = GaussianNB()
 
-    # Combine predictions from both classifiers for validation set by taking the mode
-    combined_pred_val = np.unique([string_pred_val, numeric_pred_val], axis=0)[0]
-    combined_pred_val = np.squeeze(combined_pred_val)
+        string_classifier.fit(X_train_fold[:, 0].reshape(-1, 1), y_train_fold)
+        numeric_classifier.fit(X_train_fold[:, 1].reshape(-1, 1), y_train_fold)
 
-    # Calculate accuracy for validation set
-    accuracy_val = accuracy_score(y_val, combined_pred_val)
-    
-    print(f"Validation Accuracy with alpha={alpha}:         {format(accuracy_val * 100)}%")
+        # Predict using the trained classifiers for validation set
+        string_pred_val = string_classifier.predict(X_val_fold[:, 0].reshape(-1, 1))
+        numeric_pred_val = numeric_classifier.predict(X_val_fold[:, 1].reshape(-1, 1))
+
+        # Combine predictions from both classifiers for validation set by taking the mode
+        combined_pred_val = np.unique([string_pred_val, numeric_pred_val], axis=0)[0]
+        combined_pred_val = np.squeeze(combined_pred_val)
+
+        # Calculate accuracy for validation set
+        accuracy_val = accuracy_score(y_val_fold, combined_pred_val)
+        avg_accuracy_val += accuracy_val
+
+    # Compute average validation accuracy
+    avg_accuracy_val /= k
+
+    print(f"Average Validation Accuracy with alpha={alpha}: {avg_accuracy_val}")
 
     # Update best hyperparameters if needed
-    if accuracy_val > best_accuracy:
-        best_accuracy = accuracy_val
+    if avg_accuracy_val > best_accuracy:
+        best_accuracy = avg_accuracy_val
         best_alpha = alpha
 
 print("\nBest alpha:                                ", best_alpha)
@@ -127,8 +141,11 @@ print(param_grid)
 # Create random forest model
 rf_model = RandomForestClassifier(random_state=0)
 
+# Create a KFold cross-validator
+kf = KFold(n_splits=5, shuffle=True, random_state=0)
+
 # Grid search for hyperparameter tuning
-grid_search = GridSearchCV(rf_model, param_grid, cv=3, n_jobs=-1)
+grid_search = GridSearchCV(rf_model, param_grid, cv=kf, n_jobs=-1)
 grid_search.fit(X_train, y_train)
 
 # Print the best hyperparameters found by the grid search
